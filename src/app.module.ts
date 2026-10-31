@@ -14,17 +14,28 @@ import { AdminModule } from './admin/admin.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    
+
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: '12345',
-      database: 'job_matching',
+
+      // Use Render PostgreSQL when deployed.
+      // Otherwise, use your local PostgreSQL database.
+      ...(process.env.RENDER_DATABASE_URL
+        ? {
+            url: process.env.RENDER_DATABASE_URL,
+          }
+        : {
+            host: process.env.DB_HOST || 'localhost',
+            port: Number(process.env.DB_PORT || 5432),
+            username: process.env.DB_USERNAME || 'postgres',
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME || 'job_matching',
+          }),
+
       autoLoadEntities: true,
       synchronize: false,
     }),
+
     UsersModule,
     JobsModule,
     ApplicationModule,

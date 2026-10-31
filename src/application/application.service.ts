@@ -1,10 +1,15 @@
-import { NotFoundException, Injectable, ForbiddenException } from '@nestjs/common';
+import {
+  NotFoundException,
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Application } from './application.entity';
 import { Job } from '../jobs/job.entity';
 import { User } from '../users/user.entity';
-
+import { validateJobApplicationEligibility } from './job-restriction.util';
 
 @Injectable()
 export class ApplicationService {
@@ -18,6 +23,7 @@ export class ApplicationService {
     @InjectRepository(Job)
     private jobRepository: Repository<Job>,
   ) {}
+
   async applyToJob(applicantId: number, jobId: number) {
     const job = await this.jobRepository.findOne({
       where: {
@@ -26,20 +32,38 @@ export class ApplicationService {
     });
 
     if (!job) {
-      return {
-        message: 'Job not found',
-      };
+      throw new NotFoundException('Job not found');
     }
+
     const user = await this.userRepository.findOne({
       where: {
         id: applicantId,
       },
+      relations: {
+        profile: true,
+      },
     });
 
     if (!user) {
-      return {
-        message: 'User not found',
-      };
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.profile) {
+      throw new BadRequestException(
+        'Please complete your profile before applying to jobs.',
+      );
+    }
+
+    // Restriction rule check:
+    // Tech bio -> tech jobs only; Non-tech bio -> non-tech jobs only; Both -> both
+    const eligibility = validateJobApplicationEligibility(
+      user.profile.bio,
+      user.profile.skill,
+      job,
+    );
+
+    if (!eligibility.allowed) {
+      throw new BadRequestException(eligibility.reason);
     }
 
     const existingApplication = await this.applicationRepository.findOne({
@@ -52,21 +76,24 @@ export class ApplicationService {
         },
       },
     });
+
     if (existingApplication) {
-      return {
-        message: 'You have already applied to this job',
-      };
+      throw new BadRequestException('You have already applied to this job');
     }
+
     const application = this.applicationRepository.create({
       applicant: user,
       job,
       status: 'pending',
     });
+
     await this.applicationRepository.save(application);
+
     return {
       message: 'Application submitted successfully',
     };
   }
+
   async getMyApplications(applicantId: number) {
     const applications = await this.applicationRepository.find({
       where: {
@@ -81,6 +108,7 @@ export class ApplicationService {
 
     return applications;
   }
+
   async getApplicationsForJob(employerId: number, jobId: number) {
     const job = await this.jobRepository.findOne({
       where: {
@@ -120,7 +148,12 @@ export class ApplicationService {
 
     return applications;
   }
-  async updateApplicationStatus(employerId: number, applicationId: number, status: string) {
+
+  async updateApplicationStatus(
+    employerId: number,
+    applicationId: number,
+    status: string,
+  ) {
     const application = await this.applicationRepository.findOne({
       where: {
         id: applicationId,
@@ -133,14 +166,16 @@ export class ApplicationService {
     if (!application) {
       throw new NotFoundException('Application not found');
     }
-    
+
     if (application.job.posted_by !== employerId) {
-      throw new ForbiddenException('You are not the employer of this application');
+      throw new ForbiddenException(
+        'You are not the employer of this application',
+      );
     }
 
     application.status = status;
     await this.applicationRepository.save(application);
-    return{
+    return {
       message: 'Application status updated successfully',
       application,
     };
