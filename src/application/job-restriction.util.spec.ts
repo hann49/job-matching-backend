@@ -11,7 +11,8 @@ describe('Job Restriction Eligibility', () => {
   };
   const nonTechJob = {
     title: 'Customer Success Manager',
-    requiredskill: 'Customer Relationship Management, SaaS, Stakeholder Management',
+    requiredskill:
+      'Customer Relationship Management, SaaS, Stakeholder Management',
     description: 'Support enterprise clients and ensure customer satisfaction.',
   };
   const financeJob = {
@@ -37,19 +38,23 @@ describe('Job Restriction Eligibility', () => {
     it('should BLOCK tech bio candidate from applying to a non-tech job', () => {
       const result = validateJobApplicationEligibility(techBio, '', nonTechJob);
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain('Your profile has a tech biography, so you can only apply to tech jobs.');
+      expect(result.reason).toContain(
+        'Your profile has a tech biography, so you can only apply to tech jobs.',
+      );
     });
     it('should BLOCK tech bio candidate from applying to an accountant job', () => {
       const result = validateJobApplicationEligibility(techBio, '', financeJob);
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain('Your profile has a tech biography, so you can only apply to tech jobs.');
+      expect(result.reason).toContain(
+        'Your profile has a tech biography, so you can only apply to tech jobs.',
+      );
     });
   });
   describe('Non-tech Biography', () => {
     const nonTechBio =
       'Certified accountant specializing in corporate tax, financial auditing, and bookkeeping with 6 years experience.';
 
-      it('should identify profile as non_tech_only', () => {
+    it('should identify profile as non_tech_only', () => {
       const classification = classifyBio(nonTechBio);
       expect(classification.domainType).toBe('non_tech_only');
       expect(classification.hasTech).toBe(false);
@@ -58,15 +63,25 @@ describe('Job Restriction Eligibility', () => {
     it('should BLOCK non-tech bio candidate from applying to a tech job', () => {
       const result = validateJobApplicationEligibility(nonTechBio, '', techJob);
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain("Your profile is in a non-tech field, so you cannot apply to tech jobs.");
+      expect(result.reason).toContain(
+        'Your profile is in a non-tech field, so you cannot apply to tech jobs.',
+      );
     });
     it('should ALLOW non-tech bio candidate to apply to a non-tech job', () => {
-      const result = validateJobApplicationEligibility(nonTechBio, '', nonTechJob);
+      const result = validateJobApplicationEligibility(
+        nonTechBio,
+        '',
+        nonTechJob,
+      );
       expect(result.allowed).toBe(true);
       expect(result.profileType).toBe('non_tech_only');
     });
     it('should ALLOW non-tech bio candidate to apply to an accountant job', () => {
-      const result = validateJobApplicationEligibility(nonTechBio, '', financeJob);
+      const result = validateJobApplicationEligibility(
+        nonTechBio,
+        '',
+        financeJob,
+      );
       expect(result.allowed).toBe(true);
     });
   });
@@ -80,18 +95,26 @@ describe('Job Restriction Eligibility', () => {
       expect(classification.hasNonTech).toBe(true);
     });
 
-     it('should ALLOW hybrid candidate to apply to a tech job', () => {
+    it('should ALLOW hybrid candidate to apply to a tech job', () => {
       const result = validateJobApplicationEligibility(hybridBio, '', techJob);
       expect(result.allowed).toBe(true);
       expect(result.profileType).toBe('both');
     });
     it('should ALLOW hybrid candidate to apply to a non-tech job', () => {
-      const result = validateJobApplicationEligibility(hybridBio, '', nonTechJob);
+      const result = validateJobApplicationEligibility(
+        hybridBio,
+        '',
+        nonTechJob,
+      );
       expect(result.allowed).toBe(true);
       expect(result.profileType).toBe('both');
     });
     it('should ALLOW hybrid candidate to apply to finance job', () => {
-      const result = validateJobApplicationEligibility(hybridBio, '', financeJob);
+      const result = validateJobApplicationEligibility(
+        hybridBio,
+        '',
+        financeJob,
+      );
       expect(result.allowed).toBe(true);
     });
   });
@@ -99,13 +122,20 @@ describe('Job Restriction Eligibility', () => {
     it('should reject application if biography is completely empty and no skill provided', () => {
       const result = validateJobApplicationEligibility('', '', techJob);
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain('Could not determine your professional field');
+      expect(result.reason).toContain(
+        'Could not determine your professional field',
+      );
     });
     it('should fall back to skills if biography is generic', () => {
       const genericBio = 'Enthusiastic hard worker looking for opportunities.';
       const techSkills = 'React, Node.js, TypeScript';
-      const result = validateJobApplicationEligibility(genericBio, techSkills, techJob);
+      const result = validateJobApplicationEligibility(
+        genericBio,
+        techSkills,
+        techJob,
+      );
       expect(result.allowed).toBe(true);
       expect(result.profileType).toBe('tech_only');
     });
   });
+});
